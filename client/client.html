@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Our simple HTTP server</title>
+        <link rel="stylesheet" type="text/css" href="/style.css">
+        <link href="https://fonts.googleapis.com/css?family=Rubik" rel="stylesheet">
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
+        <script type="text/babel">
+//function to handle our xhr response
+const handleResponse = (xhr, isGET) => { 
+    console.log(xhr);
+
+    //grab the content section
+    const content = document.querySelector("#content");
+    console.log(isGET);
+
+    //const h1 = document.createElement('h1');
+    const p = document.createElement('p');       
+
+
+    //parse the response text into a JSON object
+    const obj = JSON.parse(xhr.response);
+    console.log("This is my object: " + obj.message);  
+
+    //add the json fields to our html elements
+    //h1.textContent = `ID: ${obj.id}`;
+    p.textContent = `Card Balance: ${obj.message}`; 
+
+    //check the xhr status code and handle accordingly
+    switch(xhr.status) {
+        case 200: //success
+            content.innerHTML = `<b>Success</b>`;
+            break;
+        case 201: //Create
+            content.innerHTML = `<b>Card Created</b>`;
+            break;
+        case 204: //Updated
+            content.innerHTML = `<b>Updated</b>`;
+            break;
+        case 400: //bad request 
+            content.innerHTML = `<b>Bad Request</b>`;
+            break;
+        case 404: //not found (requested resource does not exist)
+            content.innerHTML = `<b>Resource Not Found</b>`;
+            break;
+        default: //default other errors we are not handling in this example
+            content.innerHTML = `Error code not implemented by client.`;
+            break;
+    }
+    //append the h1 and p to the content.
+    //content.appendChild(h1);
+    if(isGET == 'GET') {
+        content.appendChild(p);
+    }
+
+};
+
+// function for updating all saved info
+function updateInfo(name, mana, attack, health, image) {
+    if(name) {
+        document.getElementById('nameField').value = name; 
+        document.getElementById('minionText').innerHTML = name;
+        console.log(name); 
+    }
+    if(mana) {
+        document.getElementById('manaField').value = mana;
+        document.getElementById('manaText').innerHTML = mana;
+    }
+    if(attack) {
+        document.getElementById('attackField').value = attack;
+        document.getElementById('attackText').innerHTML = attack;
+    }
+    if(health) {
+        document.getElementById('healthField').value = health;
+        document.getElementById('healthText').innerHTML = health;
+    }
+    if(image) {
+        document.getElementById('imageField').src = image;
+        document.getElementById('cardImage').src = image;
+    }
+}
+
+// Save information user adds
+function saveInfo() {
+    var nameSave = document.getElementById('nameField').value;
+    var manaSave = document.getElementById('manaField').value; 
+    var attackSave = document.getElementById('attackField').value; 
+    var healthSave = document.getElementById('healthField').value; 
+    var imageSave = document.getElementById('imageField').value;
+    
+    localStorage.setItem('nameS', nameSave);
+    localStorage.setItem('manaS', manaSave);
+    localStorage.setItem('attackS', attackSave);
+    localStorage.setItem('healthS', healthSave);
+    localStorage.setItem('imageS', imageSave); 
+
+    updateInfo(nameSave, manaSave, attackSave, healthSave, imageSave);
+}
+
+// loads information user has saved
+function loadInfo() {
+    var loadName = localStorage.getItem('nameS');
+    var loadMana = localStorage.getItem('manaS');
+    var loadAttack = localStorage.getItem('attackS');
+    var loadHealth = localStorage.getItem('healthS');
+    var loadImage = localStorage.getItem('imageS');
+
+    updateInfo(loadName, loadMana, loadAttack, loadHealth, loadImage);
+
+}
+
+//function to send ajax
+const sendAjax = (url, acceptedType, secondDropdownText) => {
+    console.log(acceptedType);
+    //create a new xhr (ajax) request. 
+    //Remember that these are ASYNCHRONOUS
+    const xhr = new XMLHttpRequest();
+
+    var isGET = secondDropdownText;
+
+    console.log(url);
+
+    //set the xhr to a GET request to a certain URL
+    xhr.open('GET', url);
+    //Set the accept headers to the desired response mime type
+    //Server does NOT have to support this. It is a gentle request.
+    xhr.setRequestHeader ("Accept", acceptedType);
+    //When the xhr loads, call handleResponse and pass the xhr object
+    xhr.onload = () => handleResponse(xhr, isGET);
+    //send our ajax request to the server
+    xhr.send();
+
+};
+//initialization function
+const init = () => {
+    //const sendButton = document.querySelector("#send");
+    const createCardButton = document.querySelector("#createCard");
+
+    // Load user input
+    loadInfo();
+
+
+    //Add image url
+    //sendAjax
+
+
+    //functions to call sendAjax for us with the correct parameters
+    /*const send = () => {
+        const firstDropDownValue = document.getElementById("urlField").value;
+
+        // if first dropdown is success, then
+        //sendAjax('/success', typeToUse);
+
+        var secondDropdown = document.getElementById("methodSelect");
+        var secondDropdownText = secondDropdown.options[secondDropdown.selectedIndex].text;
+
+        sendAjax(firstDropDownValue, 'application/json', secondDropdownText);
+    } */
+
+    //Create a card after clicking button
+    const createCard = () => {
+
+        // Save user input
+        saveInfo();
+
+        var url = 'addUsers';
+
+        var manaCost = document.getElementById("manaField").value;
+
+        var attackPower = document.getElementById("attackField").value;
+
+        var healthPoints = document.getElementById("healthField").value;
+
+        document.getElementById("manaText").innerHTML = manaCost;
+
+        console.log("Mana cost: " + manaCost);
+        console.log("Attack power: " + attackPower);
+        console.log("Health points: " + healthPoints);
+
+        var balance = (manaCost * 2) + 2;
+        balance -= attackPower;
+        balance -= healthPoints;        
+
+        var showAllContent = 'GET';
+
+        if(++balance >= manaCost) {
+            url = 'underPowered';       
+        } 
+        else if(balance >= manaCost && balance <= manaCost) {
+            url = 'goodCard';
+        }
+        else if(--balance <= manaCost) {
+            url = 'overPowered';
+        }
+        else {
+            url = 'addUsers';
+        }
+
+        sendAjax(url, 'application/json', showAllContent);
+    }
+
+    //attach the correct functions to the correct events
+    //sendButton.addEventListener('click', send);
+    createCardButton.addEventListener('click', createCard);
+
+};
+window.onload = init;
+        </script>
+    </head>
+    <body class="info">
+        <img class="gameName" src="/logo" alt="Logo">
+        <section id="cardGen">Card Generator</section>
+
+        <p></p>
+
+        <section class="input">
+            <div class="theInput">
+                <label for="mana">Mana Cost: </label>
+                <input id="manaField" type="number" name="mana" min="0" max="10" step="1"/>
+                <label for="attack">Attack Power: </label>
+                <input id="attackField" type="number" name="attack" min="0" max="20" step="1"/>
+                <label for="health">Health Points: </label>
+                <input id="healthField" type="number" name="health" min="1" max="20" step="1"/>
+                <label for="name">Minion Name: </label>
+                <input id="nameField" type="text" name="name" />
+                <label for="image">Image (url): </label>
+                <input id="imageField" type="text" name="image" />
+            </div>
+            <div>
+                <button id="createCard">Create Card</button>
+            </div>
+        </section>
+        <div id="cardDesign">
+
+            <img id="blankCardBackground" src="/druidCardBackground" alt="card image back">
+            <img id="cardImage" src="/questionMark" alt="question" width="200px" height="320px">
+            <img id="blankCard" src="/druidCard" alt="card template">
+            <div id="minionText">Your minion</div>
+            <div id="manaText" style="font-size:28px;">20</div> 
+            <div id="attackText" style="font-size:28px;">1</div>
+            <div id="healthText" style="font-size:28px;">5</div>
+
+        </div>
+        <section id="content">
+        </section>
+    </body>
+</html>
